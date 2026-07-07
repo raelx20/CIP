@@ -1,10 +1,4 @@
-import sys
 import asyncio
-
-if sys.platform == "win32":
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-    import nest_asyncio
-    nest_asyncio.apply()
 
 from sqlalchemy import text
 
@@ -31,4 +25,7 @@ async def test_database_connection() -> None:
 
 
 if __name__ == "__main__":
-    asyncio.run(test_database_connection())
+    asyncio.run(
+        test_database_connection(),
+        loop_factory=asyncio.SelectorEventLoop,
+    )
