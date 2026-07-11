@@ -1,26 +1,29 @@
-# Production Deployment Guide
+# Production Deployment Guide (Vercel + Supabase)
 
 ## Architecture
 
 ```
-┌─────────────┐     ┌──────────────┐     ┌──────────────┐
-│   Vercel    │────▶│   Railway    │────▶│   Supabase   │
-│  (Frontend) │     │  (Backend)   │     │  (Database)  │
-│  Next.js    │     │  FastAPI     │     │  PostGIS     │
-└─────────────┘     └──────────────┘     └──────────────┘
-                           │
-                           ▼
-                    ┌──────────────┐
-                    │   Upstash    │
-                    │   (Redis)    │
-                    └──────────────┘
+┌─────────────────────────────────────────────┐
+│                  Vercel                      │
+│  ┌──────────────┐     ┌──────────────────┐  │
+│  │   Frontend   │     │    Backend       │  │
+│  │   Next.js    │────▶│  FastAPI (Python)│  │
+│  │  /frontend/* │     │  /api/*          │  │
+│  └──────────────┘     └────────┬─────────┘  │
+└────────────────────────────────┼────────────┘
+                                 │
+                    ┌────────────┴────────────┐
+                    ▼                         ▼
+             ┌──────────────┐        ┌──────────────┐
+             │   Supabase   │        │   Upstash    │
+             │  (PostGIS)   │        │   (Redis)    │
+             └──────────────┘        └──────────────┘
 ```
 
 ## Prerequisites
 
 - GitHub account
 - Vercel account (free)
-- Railway account (free tier)
 - Supabase account (free tier)
 - Upstash account (free tier)
 
@@ -34,7 +37,6 @@
 3. Enable PostGIS:
    - Go to SQL Editor
    - Run: `CREATE EXTENSION IF NOT EXISTS postgis;`
-4. Note the **Service Role Key** from Settings → API (for admin operations)
 
 ## Step 2: Upstash (Redis)
 
@@ -44,84 +46,71 @@
    redis://default:[password]@[endpoint]:6379
    ```
 
-## Step 3: Railway (Backend)
+## Step 3: Vercel (Frontend + Backend)
 
-1. Go to [railway.app](https://railway.app) and create a new project
-2. Connect your GitHub repository
-3. Set the **root directory** to `backend`
-4. Add these environment variables:
+1. Go to [vercel.com](https://vercel.com) and **Import Git Repository**
+2. Select `raelx20/CIP`
+3. Vercel will auto-detect the configuration from `vercel.json`
+4. Add these **Environment Variables** in the Vercel dashboard:
 
    | Variable | Value |
    |----------|-------|
-   | `DATABASE_URL` | Your Supabase connection URI (change `postgresql://` to `postgresql+asyncpg://`) |
+   | `DATABASE_URL` | Your Supabase URI (change `postgresql://` to `postgresql+asyncpg://`) |
    | `REDIS_URL` | Your Upstash Redis URL |
    | `JWT_SECRET_KEY` | Generate with: `python -c "import secrets; print(secrets.token_urlsafe(64))"` |
    | `ENVIRONMENT` | `production` |
-   | `DEBUG` | `false` |
-   | `BACKEND_CORS_ORIGINS` | `["https://your-app.vercel.app"]` |
-   | `LLM_BASE_URL` | Your LLM endpoint (e.g., OpenAI API URL) |
+   | `LLM_BASE_URL` | Your LLM endpoint (e.g., `https://api.openai.com/v1`) |
    | `LLM_API_KEY` | Your LLM API key |
-   | `LLM_MODEL` | Your model name |
+   | `LLM_MODEL` | Your model name (e.g., `gpt-4o-mini`) |
    | `GOOGLE_MAPS_API_KEY` | Your Google Maps API key |
 
-5. Railway will auto-deploy from the `railway.json` config
-6. Note the **public URL** (e.g., `https://backend-production-xxxx.up.railway.app`)
+5. Deploy
 
-## Step 4: Vercel (Frontend)
+## Step 4: Run Migrations
 
-1. Go to [vercel.com](https://vercel.com) and import your GitHub repository
-2. Set the **root directory** to `frontend`
-3. Add environment variable:
+Migrations need to be run manually since Vercel serverless functions don't support Alembic CLI.
 
-   | Variable | Value |
-   |----------|-------|
-   | `NEXT_PUBLIC_API_URL` | Your Railway backend URL (e.g., `https://backend-production-xxxx.up.railway.app`) |
+### Option A: Via Supabase SQL Editor
+Go to SQL Editor and run the migration SQL from `backend/migrations/versions/`.
 
-4. Deploy
+### Option B: Via a one-time script
+```bash
+# Clone the repo locally
+git clone https://github.com/raelx20/CIP.git
+cd CIP
 
-## Step 5: Update CORS
+# Create .env with your production DATABASE_URL
+echo "DATABASE_URL=postgresql+asyncpg://..." > backend/.env
+echo "JWT_SECRET_KEY=your-key" >> backend/.env
 
-After getting your Vercel URL, update the Railway backend environment:
-
+# Run migrations
+cd backend
+pip install -r requirements.txt
+alembic upgrade head
 ```
-BACKEND_CORS_ORIGINS=["https://your-app.vercel.app"]
-```
 
-## Step 6: Run Migrations
-
-Railway runs `alembic upgrade head` on deploy. If you need to run manually:
+## Step 5: Create Admin User
 
 ```bash
-# Via Railway CLI
-railway run alembic upgrade head
-
-# Or via Supabase SQL Editor, run the migration SQL manually
+# Via Supabase SQL Editor
+INSERT INTO users (id, email, hashed_password, full_name, role, is_active, created_at, updated_at)
+VALUES (
+  gen_random_uuid(),
+  'admin@cip.gov',
+  '$2b$12$LJ3m4ys3Lk0TSwMFQqGqjOQxKjQxKjQxKjQxKjQxKjQxKjQxKjQxKj',  -- bcrypt hash of 'Admin123!'
+  'System Admin',
+  'admin',
+  true,
+  NOW(),
+  NOW()
+);
 ```
 
-## Step 7: Create Admin User
-
-```bash
-# Via Railway CLI
-railway run python -c "
-from app.security.authentication import hash_password
-from app.infrastructure.database.repositories.user import UserRepository
-from app.database.session import AsyncSessionLocal
-import asyncio
-
-async def create_admin():
-    async with AsyncSessionLocal() as session:
-        repo = UserRepository(session)
-        user = await repo.create({
-            'email': 'admin@cip.gov',
-            'hashed_password': hash_password('Admin123!'),
-            'full_name': 'System Admin',
-            'role': 'admin',
-            'is_active': True,
-        })
-        print(f'Admin user created: {user.id}')
-
-asyncio.run(create_admin())
-"
+Or use a Python script:
+```python
+from passlib.context import CryptContext
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+print(pwd_context.hash("Admin123!"))
 ```
 
 ## Environment Variables Reference
@@ -131,7 +120,7 @@ asyncio.run(create_admin())
 | Variable | Description | Example |
 |----------|-------------|---------|
 | `DATABASE_URL` | PostgreSQL connection (asyncpg) | `postgresql+asyncpg://user:pass@host:6543/db` |
-| `JWT_SECRET_KEY` | Secret for JWT signing | `openssl rand -base64 64` |
+| `JWT_SECRET_KEY` | Secret for JWT signing | `python -c "import secrets; print(secrets.token_urlsafe(64))"` |
 | `REDIS_URL` | Redis connection | `redis://default:pass@host:6379` |
 
 ### Optional
@@ -140,30 +129,38 @@ asyncio.run(create_admin())
 |----------|---------|-------------|
 | `ENVIRONMENT` | `development` | `production` for live |
 | `DEBUG` | `false` | Enable debug mode |
-| `BACKEND_CORS_ORIGINS` | `["http://localhost:3000"]` | Allowed origins |
 | `LLM_BASE_URL` | `http://localhost:11434/v1` | LLM API endpoint |
 | `LLM_API_KEY` | `ollama` | LLM API key |
 | `LLM_MODEL` | `qwen3:1.7b` | LLM model name |
 | `GOOGLE_MAPS_API_KEY` | `""` | Google Maps API key |
 
+## Your Production URLs
+
+After deployment, your URLs will be:
+
+| Service | URL |
+|---------|-----|
+| Frontend | `https://cip.vercel.app` |
+| Backend API | `https://cip.vercel.app/api/v1/...` |
+| API Docs | `https://cip.vercel.app/api/v1/system/health` |
+
 ## Troubleshooting
 
 ### Backend won't start
-- Check Railway logs: `railway logs`
+- Check Vercel function logs in the dashboard
 - Verify `DATABASE_URL` uses `postgresql+asyncpg://` (not `postgresql://`)
 - Verify `JWT_SECRET_KEY` is set
 
-### Frontend can't reach backend
-- Check `NEXT_PUBLIC_API_URL` in Vercel env vars
-- Verify CORS origins include your Vercel URL
-- Check browser console for CORS errors
-
 ### Database connection refused
 - Verify Supabase project is active
-- Check if IP whitelist is enabled (disable for Railway)
+- Check if IP whitelist is enabled (disable for Vercel)
 - Verify connection string format
 
-### Migrations fail
-- Check Supabase SQL Editor for errors
-- Verify PostGIS extension is enabled
-- Run migrations manually if needed
+### CORS errors
+- In Vercel, the frontend and backend are on the same domain, so CORS shouldn't be an issue
+- If you see CORS errors, check that `BACKEND_CORS_ORIGINS` includes your Vercel URL
+
+### Cold starts
+- First request to the backend may take 2-5 seconds
+- Subsequent requests are fast
+- This is normal for serverless Python functions

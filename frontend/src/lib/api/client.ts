@@ -1,4 +1,6 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+// In production (Vercel), API is on the same domain at /api/*
+// In development, API is on a separate backend server
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
 
 interface RequestOptions {
   method?: string;
