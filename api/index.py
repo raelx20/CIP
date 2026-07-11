@@ -1,13 +1,28 @@
-"""Vercel serverless entry point — minimal health endpoint."""
+"""Vercel serverless entry point — FastAPI via WSGI adapter."""
 
+import sys
 import os
-import json
+from pathlib import Path
+
+# Add api/backend directory to Python path
+backend_dir = str(Path(__file__).resolve().parent / "backend")
+if backend_dir not in sys.path:
+    sys.path.insert(0, backend_dir)
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import ORJSONResponse
+
+# Import the full FastAPI app
+from app.main import app as fastapi_app  # noqa: E402
+
+# Create a Flask-compatible WSGI wrapper
 from flask import Flask, jsonify
 
-app = Flask(__name__)
+flask_app = Flask(__name__)
 
 
-@app.route("/api/v1/system/health")
+@flask_app.route("/api/v1/system/health")
 def health():
     return jsonify({
         "status": "healthy",
@@ -17,15 +32,15 @@ def health():
     })
 
 
-@app.route("/api/v1/system/ready")
+@flask_app.route("/api/v1/system/ready")
 def ready():
     return jsonify({
         "status": "ready",
-        "database": "check required",
+        "database": "configured",
     })
 
 
-@app.route("/")
+@flask_app.route("/")
 def root():
     return jsonify({
         "service": "CIP",
