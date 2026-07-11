@@ -21,6 +21,15 @@ async def health_check() -> dict:
 
 @router.get("/ready")
 async def readiness_check():
+    if engine is None:
+        return ORJSONResponse(
+            status_code=503,
+            content={
+                "status": "not_ready",
+                "database": "unconfigured",
+            },
+        )
+
     try:
         async with engine.connect() as connection:
             await connection.execute(text("SELECT 1"))

@@ -2,8 +2,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import ORJSONResponse
 
+from app.api.router import api_router
 from app.api.system.health import router as system_router
 from app.common.exceptions import register_exception_handlers
 from app.common.logger import configure_logging, get_logger
@@ -26,7 +26,8 @@ async def lifespan(app: FastAPI):
 
     yield
 
-    await engine.dispose()
+    if engine:
+        await engine.dispose()
 
     logger.info("Application stopped")
 
@@ -35,7 +36,6 @@ app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
     debug=settings.DEBUG,
-    default_response_class=ORJSONResponse,
     lifespan=lifespan,
 )
 
@@ -58,6 +58,12 @@ register_exception_handlers(app)
 app.include_router(
     system_router,
     prefix=f"{settings.API_V1_PREFIX}/system",
+)
+
+
+app.include_router(
+    api_router,
+    prefix=settings.API_V1_PREFIX,
 )
 
 
