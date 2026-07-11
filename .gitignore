@@ -46,3 +46,4 @@ frontend/tsconfig.tsbuildinfo
 # Backend storage
 backend/storage/
 !backend/storage/uploads/.gitkeep
+.vercel
