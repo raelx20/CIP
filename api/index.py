@@ -10,13 +10,15 @@ if backend_dir not in sys.path:
     sys.path.insert(0, backend_dir)
 
 try:
-    from app.main import app  # noqa: F401,F403
-except ImportError as e:
-    # If import fails, create a simple error handler
-    import os
-
-    class app:  # noqa: F811
-        pass
-
-    # Store error for debugging
-    os.environ["CIP_IMPORT_ERROR"] = str(e)
+    from app.main import app
+except ImportError:
+    # Minimal ASGI fallback if FastAPI import fails
+    async def app(scope, receive, send):
+        if scope["type"] == "http":
+            await send({
+                "type": "http.response.start",
+                "status": 200,
+                "headers": [[b"content-type", b"application/json"]],
+            })
+            body = json.dumps({"status": "error", "message": "Backend import failed"}).encode()
+            await send({"type": "http.response.body", "body": body})
