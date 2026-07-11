@@ -1,11 +1,19 @@
-"""Vercel serverless entry point for the FastAPI backend."""
+"""Minimal Vercel Python endpoint — health check only."""
 
-import sys
-from pathlib import Path
+from http.server import BaseHTTPRequestHandler
+import json
+import os
 
-# Add api/backend directory to Python path
-backend_dir = str(Path(__file__).resolve().parent / "backend")
-if backend_dir not in sys.path:
-    sys.path.insert(0, backend_dir)
 
-from app.main import app  # noqa: E402
+class handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        response = {
+            "status": "healthy",
+            "service": "Constituency Intelligence Platform",
+            "version": "1.0.0",
+            "environment": os.environ.get("ENVIRONMENT", "development"),
+        }
+        self.wfile.write(json.dumps(response).encode())
