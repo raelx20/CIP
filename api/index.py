@@ -1,12 +1,34 @@
-"""Vercel serverless entry point for the FastAPI backend."""
+"""Vercel serverless entry point — minimal health endpoint."""
 
-import sys
+import os
 import json
-from pathlib import Path
+from flask import Flask, jsonify
 
-# Add api/backend directory to Python path
-backend_dir = str(Path(__file__).resolve().parent / "backend")
-if backend_dir not in sys.path:
-    sys.path.insert(0, backend_dir)
+app = Flask(__name__)
 
-from app.main import app  # noqa: E402
+
+@app.route("/api/v1/system/health")
+def health():
+    return jsonify({
+        "status": "healthy",
+        "service": "Constituency Intelligence Platform",
+        "version": "1.0.0",
+        "environment": os.environ.get("ENVIRONMENT", "development"),
+    })
+
+
+@app.route("/api/v1/system/ready")
+def ready():
+    return jsonify({
+        "status": "ready",
+        "database": "check required",
+    })
+
+
+@app.route("/")
+def root():
+    return jsonify({
+        "service": "CIP",
+        "version": "1.0.0",
+        "docs": "/api/v1/system/health",
+    })
