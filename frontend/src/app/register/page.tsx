@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { auth } from '@/lib/api/client';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function RegisterPage() {
   const [form, setForm] = useState({
@@ -35,9 +36,9 @@ export default function RegisterPage() {
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
       <div style={{ width: '100%', maxWidth: '400px' }}>
         <div style={{ marginBottom: '2rem' }}>
-          <a href="/" style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--action-primary)', textDecoration: 'none' }}>
+          <Link href="/" style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--action-primary)', textDecoration: 'none' }}>
             CIP
-          </a>
+          </Link>
         </div>
         
         <h1 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '0.5rem' }}>Create account</h1>
@@ -127,7 +128,7 @@ export default function RegisterPage() {
         </form>
 
         <p style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-          Already have an account? <a href="/login" style={{ color: 'var(--action-primary)', fontWeight: 500 }}>Sign in</a>
+          Already have an account? <Link href="/login" style={{ color: 'var(--action-primary)', fontWeight: 500 }}>Sign in</Link>
         </p>
       </div>
     </div>

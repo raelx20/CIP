@@ -3,13 +3,14 @@
 import { useState } from 'react';
 import { useAuth } from '@/lib/auth/context';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, user } = useAuth();
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -19,7 +20,6 @@ export default function LoginPage() {
 
     try {
       await login(email, password);
-      router.push('/citizen');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
@@ -27,15 +27,26 @@ export default function LoginPage() {
     }
   };
 
+  // Redirect after login based on role
+  if (user) {
+    const roleRoutes: Record<string, string> = {
+      citizen: '/citizen',
+      mp: '/mp',
+      officer: '/officer',
+      admin: '/admin',
+    };
+    router.push(roleRoutes[user.role] || '/citizen');
+  }
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex' }}>
       {/* Left - Form */}
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
         <div style={{ width: '100%', maxWidth: '400px' }}>
           <div style={{ marginBottom: '2rem' }}>
-            <a href="/" style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--action-primary)', textDecoration: 'none' }}>
+            <Link href="/" style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--action-primary)', textDecoration: 'none' }}>
               CIP
-            </a>
+            </Link>
           </div>
           
           <h1 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '0.5rem' }}>Welcome back</h1>
@@ -94,7 +105,7 @@ export default function LoginPage() {
           </form>
 
           <p style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-            Don&apos;t have an account? <a href="/register" style={{ color: 'var(--action-primary)', fontWeight: 500 }}>Sign up</a>
+            Don&apos;t have an account? <Link href="/register" style={{ color: 'var(--action-primary)', fontWeight: 500 }}>Sign up</Link>
           </p>
         </div>
       </div>

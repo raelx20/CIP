@@ -10,7 +10,7 @@ export default function OfficerIssuesPage() {
   const [data, setData] = useState<IssueListResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [skip, setSkip] = useState(0);
+  const [skip] = useState(0);
   const limit = 20;
 
   useEffect(() => {

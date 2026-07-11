@@ -15,7 +15,11 @@ class Settings(BaseSettings):
 
     API_V1_PREFIX: str = "/api/v1"
 
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:anshu%402006@127.0.0.1:5432/cip"
+    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/cip"
+
+    JWT_SECRET_KEY: str = ""
+
+    REDIS_URL: str = "redis://localhost:6379/0"
 
     BACKEND_CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
 
@@ -26,6 +30,18 @@ class Settings(BaseSettings):
     LLM_TIMEOUT: int = 120
     LLM_TEMPERATURE: float = 0.7
     LLM_MAX_TOKENS: int = 2000
+
+    # Geospatial
+    GOOGLE_MAPS_API_KEY: str = ""
+
+    @property
+    def sync_database_url(self) -> str:
+        """Synchronous database URL for Alembic migrations."""
+        url = self.DATABASE_URL
+        # Convert async driver to sync for Alembic
+        url = url.replace("postgresql+asyncpg://", "postgresql://")
+        url = url.replace("postgresql+psycopg_async://", "postgresql://")
+        return url
 
     model_config = SettingsConfigDict(
         env_file=ENV_PATH,

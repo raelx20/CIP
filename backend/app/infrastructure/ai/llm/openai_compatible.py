@@ -119,9 +119,9 @@ Respond ONLY with the JSON object, no other text."""
         data = response.json()
         return [item["embedding"] for item in data["data"]]
 
-    def health_check(self) -> bool:
+    async def health_check(self) -> bool:
         try:
-            response = self.client.get("/models")
+            response = await self.client.get("/models")
             return response.status_code == 200
         except Exception:
             return False

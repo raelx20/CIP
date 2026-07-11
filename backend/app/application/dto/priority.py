@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ScoreComponentResponse(BaseModel):
@@ -26,8 +26,7 @@ class PriorityResponse(BaseModel):
     calculation_timestamp: datetime
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class PriorityRankingResponse(BaseModel):

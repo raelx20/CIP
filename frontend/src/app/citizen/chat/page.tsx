@@ -5,7 +5,7 @@ import { useAuth } from '@/lib/auth/context';
 import { citizen, ChatMessage } from '@/lib/api/client';
 
 export default function CitizenChat() {
-  const { token, user } = useAuth();
+  const { token } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);

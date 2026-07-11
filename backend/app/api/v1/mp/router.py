@@ -1,10 +1,11 @@
 import uuid
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.application.dto.dashboard import DashboardOverview, IssueCountByCategory
 from app.application.dto.issue import IssueClusterResponse, IssueDetailResponse, IssueListResponse
 from app.application.dto.priority import PriorityRankingResponse
 from app.application.dto.copilot import CopilotQuery, CopilotResponse
+from app.api.dependencies import require_mp
 
 router = APIRouter()
 
@@ -12,6 +13,7 @@ router = APIRouter()
 @router.get("/dashboard", response_model=DashboardOverview)
 async def get_mp_dashboard(
     constituency: str | None = None,
+    current_user: dict = Depends(require_mp),
 ):
     """Get MP constituency-scoped dashboard overview."""
     from app.infrastructure.database.repositories.submission import SubmissionRepository
@@ -43,6 +45,7 @@ async def get_mp_issues(
     category: str | None = None,
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
+    current_user: dict = Depends(require_mp),
 ):
     """Get consolidated issue clusters for MP (ONE entry per unique problem)."""
     from app.infrastructure.database.repositories.issue import IssueClusterRepository
@@ -84,7 +87,10 @@ async def get_mp_issues(
 
 
 @router.get("/issues/{issue_id}", response_model=IssueDetailResponse)
-async def get_mp_issue_detail(issue_id: uuid.UUID):
+async def get_mp_issue_detail(
+    issue_id: uuid.UUID,
+    current_user: dict = Depends(require_mp),
+):
     """Get detailed information about a specific consolidated issue."""
     from app.infrastructure.database.repositories.issue import IssueClusterRepository
     from app.database.session import AsyncSessionLocal
@@ -132,6 +138,7 @@ async def get_mp_priorities(
     min_level: str | None = None,
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
+    current_user: dict = Depends(require_mp),
 ):
     """Get ranked priority list for MP constituency."""
     return PriorityRankingResponse(
@@ -147,6 +154,7 @@ async def get_mp_priorities(
 async def get_mp_hotspots(
     constituency: str | None = None,
     category: str | None = None,
+    current_user: dict = Depends(require_mp),
 ):
     """Get geographic hotspots for MP constituency."""
     from app.infrastructure.database.repositories.issue import IssueClusterRepository
@@ -174,7 +182,10 @@ async def get_mp_hotspots(
 
 
 @router.post("/copilot", response_model=CopilotResponse)
-async def mp_copilot_query(query: CopilotQuery):
+async def mp_copilot_query(
+    query: CopilotQuery,
+    current_user: dict = Depends(require_mp),
+):
     """Query the grounded MP copilot."""
     from app.application.workflows.chat import ChatWorkflow
 

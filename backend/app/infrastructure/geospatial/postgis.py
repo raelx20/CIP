@@ -5,6 +5,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.location.value_objects import Coordinates
 
+ALLOWED_TABLES = frozenset({"constituencies"})
+ALLOWED_GEOMETRY_COLUMNS = frozenset({"geom"})
+
 
 class PostGISGeospatial:
     def __init__(self, session: AsyncSession):
@@ -16,6 +19,10 @@ class PostGISGeospatial:
         table_name: str,
         geometry_column: str = "geom",
     ) -> list[dict[str, Any]]:
+        if table_name not in ALLOWED_TABLES:
+            raise ValueError(f"Table {table_name!r} is not in the allowlist")
+        if geometry_column not in ALLOWED_GEOMETRY_COLUMNS:
+            raise ValueError(f"Column {geometry_column!r} is not in the allowlist")
         query = text(f"""
             SELECT * FROM {table_name}
             WHERE ST_Contains(
@@ -38,6 +45,10 @@ class PostGISGeospatial:
         geometry_column: str = "geom",
         limit: int = 5,
     ) -> list[dict[str, Any]]:
+        if table_name not in ALLOWED_TABLES:
+            raise ValueError(f"Table {table_name!r} is not in the allowlist")
+        if geometry_column not in ALLOWED_GEOMETRY_COLUMNS:
+            raise ValueError(f"Column {geometry_column!r} is not in the allowlist")
         query = text(f"""
             SELECT *, ST_Distance(
                 {geometry_column},

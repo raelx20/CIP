@@ -6,11 +6,20 @@ from passlib.context import CryptContext
 
 from app.config import settings
 
-SECRET_KEY = "cip-secret-key-change-in-production"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+def _get_secret_key() -> str:
+    key = settings.JWT_SECRET_KEY
+    if not key:
+        raise RuntimeError(
+            "JWT_SECRET_KEY is not configured. "
+            "Set it in your .env file or environment variables."
+        )
+    return key
 
 
 def hash_password(password: str) -> str:
@@ -25,12 +34,12 @@ def create_access_token(data: dict[str, Any], expires_delta: timedelta | None = 
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return jwt.encode(to_encode, _get_secret_key(), algorithm=ALGORITHM)
 
 
 def decode_access_token(token: str) -> dict[str, Any] | None:
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, _get_secret_key(), algorithms=[ALGORITHM])
         return payload
     except jwt.PyJWTError:
         return None

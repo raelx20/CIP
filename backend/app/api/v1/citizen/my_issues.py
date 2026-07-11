@@ -1,7 +1,11 @@
 import uuid
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import UUID
 
 from app.application.dto.issue import IssueClusterResponse
+from app.database.models.issue import IssueClusterMembership
+from app.api.dependencies import require_citizen
 
 router = APIRouter()
 
@@ -9,6 +13,7 @@ router = APIRouter()
 @router.get("/my-issues")
 async def get_my_issues(
     citizen_id: uuid.UUID,
+    current_user: dict = Depends(require_citizen),
 ):
     """Get consolidated issues the citizen contributed to, with 'X people reported this'."""
     from app.infrastructure.database.repositories.issue import IssueClusterRepository
@@ -24,10 +29,8 @@ async def get_my_issues(
         cluster_ids = set()
         for sub in submissions:
             memberships = await session.execute(
-                __import__('sqlalchemy').select(
-                    __import__('sqlalchemy').text('issue_cluster_memberships.cluster_id')
-                ).where(
-                    __import__('sqlalchemy').text(f"submission_id = '{sub.id}'")
+                select(IssueClusterMembership.cluster_id).where(
+                    IssueClusterMembership.submission_id == sub.id
                 )
             )
             for row in memberships:
@@ -69,7 +72,10 @@ async def get_my_issues(
 
 
 @router.get("/submissions/{submission_id}/status")
-async def get_submission_status(submission_id: uuid.UUID):
+async def get_submission_status(
+    submission_id: uuid.UUID,
+    current_user: dict = Depends(require_citizen),
+):
     """Get detailed status of a citizen's submission."""
     from app.infrastructure.database.repositories.submission import SubmissionRepository
     from app.database.session import AsyncSessionLocal

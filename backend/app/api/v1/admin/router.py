@@ -1,10 +1,11 @@
 import uuid
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.application.dto.dashboard import DashboardOverview, IssueCountByCategory
 from app.application.dto.issue import IssueClusterResponse, IssueDetailResponse, IssueListResponse
 from app.application.dto.priority import PriorityResponse, PriorityRankingResponse
 from app.application.dto.copilot import CopilotQuery, CopilotResponse
+from app.api.dependencies import require_admin
 
 router = APIRouter()
 
@@ -13,6 +14,7 @@ router = APIRouter()
 async def get_dashboard(
     constituency: str | None = None,
     category: str | None = None,
+    current_user: dict = Depends(require_admin),
 ):
     """Get admin dashboard overview."""
     from app.infrastructure.database.repositories.submission import SubmissionRepository
@@ -47,6 +49,7 @@ async def get_issues(
     status: str | None = None,
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
+    current_user: dict = Depends(require_admin),
 ):
     """Get list of issues with filters."""
     from app.infrastructure.database.repositories.issue import IssueClusterRepository
@@ -88,7 +91,10 @@ async def get_issues(
 
 
 @router.get("/issues/{issue_id}", response_model=IssueDetailResponse)
-async def get_issue_detail(issue_id: uuid.UUID):
+async def get_issue_detail(
+    issue_id: uuid.UUID,
+    current_user: dict = Depends(require_admin),
+):
     """Get detailed information about a specific issue."""
     from app.infrastructure.database.repositories.issue import IssueClusterRepository
     from app.database.session import AsyncSessionLocal
@@ -136,6 +142,7 @@ async def get_priorities(
     min_level: str | None = None,
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
+    current_user: dict = Depends(require_admin),
 ):
     """Get ranked priority list."""
     return PriorityRankingResponse(
@@ -148,7 +155,10 @@ async def get_priorities(
 
 
 @router.post("/copilot", response_model=CopilotResponse)
-async def copilot_query(query: CopilotQuery):
+async def copilot_query(
+    query: CopilotQuery,
+    current_user: dict = Depends(require_admin),
+):
     """Query the grounded MP copilot."""
     from app.application.workflows.chat import ChatWorkflow
 

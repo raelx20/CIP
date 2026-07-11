@@ -38,7 +38,9 @@ def upgrade() -> None:
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_index('idx_constituencies_geom', 'constituencies', ['geom'], unique=False, postgresql_using='gist')
+    # GeoAlchemy2 auto-creates the spatial index on the geom column;
+    # only create the non-spatial indexes here.
+    op.execute("CREATE INDEX IF NOT EXISTS idx_constituencies_geom ON constituencies USING gist (geom)")
     op.create_index(op.f('ix_constituencies_district'), 'constituencies', ['district'], unique=False)
     op.create_index(op.f('ix_constituencies_name'), 'constituencies', ['name'], unique=False)
     op.create_index(op.f('ix_constituencies_state'), 'constituencies', ['state'], unique=False)

@@ -1,9 +1,10 @@
 import uuid
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.application.dto.submission import SubmissionCreate, SubmissionResponse
 from app.application.dto.chat import ChatMessage, ChatResponse, ConversationHistory
 from app.api.v1.citizen.my_issues import router as my_issues_router
+from app.api.dependencies import get_current_user, require_citizen
 
 router = APIRouter()
 
@@ -11,7 +12,10 @@ router.include_router(my_issues_router)
 
 
 @router.post("/submissions", response_model=SubmissionResponse, status_code=status.HTTP_201_CREATED)
-async def create_submission(request: SubmissionCreate):
+async def create_submission(
+    request: SubmissionCreate,
+    current_user: dict = Depends(require_citizen),
+):
     """Create a new citizen submission."""
     from app.application.workflows.intake import IntakeWorkflow
     from app.infrastructure.database.repositories.submission import SubmissionRepository
@@ -51,7 +55,10 @@ async def create_submission(request: SubmissionCreate):
 
 
 @router.get("/submissions/{submission_id}", response_model=SubmissionResponse)
-async def get_submission(submission_id: uuid.UUID):
+async def get_submission(
+    submission_id: uuid.UUID,
+    current_user: dict = Depends(require_citizen),
+):
     """Get a specific submission by ID."""
     from app.infrastructure.database.repositories.submission import SubmissionRepository
     from app.database.session import AsyncSessionLocal
@@ -83,7 +90,10 @@ async def get_submission(submission_id: uuid.UUID):
 
 
 @router.post("/chat", response_model=ChatResponse)
-async def chat(message: ChatMessage):
+async def chat(
+    message: ChatMessage,
+    current_user: dict = Depends(require_citizen),
+):
     """Send a message to the AI chat assistant."""
     from app.application.workflows.chat import ChatWorkflow
 
@@ -109,7 +119,10 @@ async def chat(message: ChatMessage):
 
 
 @router.get("/chat/history/{session_id}", response_model=ConversationHistory)
-async def get_chat_history(session_id: uuid.UUID):
+async def get_chat_history(
+    session_id: uuid.UUID,
+    current_user: dict = Depends(require_citizen),
+):
     """Get conversation history for a session."""
     return ConversationHistory(
         session_id=session_id,

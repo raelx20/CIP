@@ -37,11 +37,17 @@ jobs:
         run: |
           cd backend
           pip install -r requirements.txt
-          pip install PyJWT passlib[bcrypt]
+
+      - name: Run lint
+        run: |
+          cd backend
+          python -m py_compile app/main.py
+          python -m py_compile app/security/authentication.py
 
       - name: Run tests
         env:
           DATABASE_URL: postgresql+psycopg_async://postgres:postgres@localhost:5432/cip_test
+          JWT_SECRET_KEY: ci-test-secret-key-not-for-production
         run: |
           cd backend
           python -m pytest tests/ -v

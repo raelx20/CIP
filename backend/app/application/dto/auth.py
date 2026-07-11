@@ -1,6 +1,10 @@
+import re
 import uuid
 from datetime import datetime
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+
+_EMAIL_RE = re.compile(r"^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$")
 
 
 class LoginRequest(BaseModel):
@@ -24,6 +28,13 @@ class RegisterRequest(BaseModel):
     district: str | None = None
     state: str | None = None
 
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, v: str) -> str:
+        if not _EMAIL_RE.match(v):
+            raise ValueError("Invalid email format")
+        return v
+
 
 class UserResponse(BaseModel):
     id: uuid.UUID
@@ -37,5 +48,4 @@ class UserResponse(BaseModel):
     state: str | None = None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

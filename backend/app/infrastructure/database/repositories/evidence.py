@@ -60,8 +60,8 @@ class EvidenceRepository(BaseRepository[ContextEvidence]):
     async def get_recent_evidence(
         self, cluster_id: uuid.UUID, days: int = 30
     ) -> Sequence[ContextEvidence]:
-        from datetime import datetime, timedelta
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        from datetime import datetime, timedelta, timezone
+        cutoff = datetime.now(timezone.utc) - timedelta(days=days)
         result = await self.session.execute(
             select(ContextEvidence)
             .where(
