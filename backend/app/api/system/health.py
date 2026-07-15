@@ -34,8 +34,8 @@ async def readiness_check():
             async with engine.connect() as connection:
                 await connection.execute(text("SELECT 1"))
             db_status = "connected"
-        except Exception:
-            db_status = "unavailable"
+        except Exception as e:
+            db_status = f"error: {type(e).__name__}: {str(e)[:200]}"
 
     # Check Redis
     try:
