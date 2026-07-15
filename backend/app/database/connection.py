@@ -11,5 +11,6 @@ _engine_kwargs = {
 
 engine: AsyncEngine = create_async_engine(
     settings.DATABASE_URL,
+    connect_args={"statement_cache_size": 0} if settings.DATABASE_URL and "pooler" in settings.DATABASE_URL else {},
     **_engine_kwargs,
 ) if settings.DATABASE_URL and settings.DATABASE_URL.strip() else None
