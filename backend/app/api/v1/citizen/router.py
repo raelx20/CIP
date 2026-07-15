@@ -99,12 +99,13 @@ async def chat(
 
     workflow = ChatWorkflow()
 
-    citizen_id = uuid.uuid4()
+    citizen_id = uuid.UUID(current_user["sub"])
 
     response = await workflow.process_citizen_message(
         citizen_id=citizen_id,
         message=message.content,
         detected_language=message.detected_language,
+        history=message.history,
     )
 
     return ChatResponse(

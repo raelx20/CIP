@@ -1,10 +1,13 @@
 import uuid
 from datetime import datetime, timezone
 
+from app.common.logger import get_logger
 from app.domain.conversation.value_objects import ConversationState, MessageRole
 from app.domain.submission.value_objects import SubmissionStatus
 from app.prompts.citizen_system import CITIZEN_SYSTEM_PROMPT
 from app.prompts.multilingual import MULTILINGUAL_INSTRUCTIONS
+
+logger = get_logger()
 
 
 class ChatWorkflow:
@@ -29,6 +32,7 @@ class ChatWorkflow:
         message: str,
         session_id: uuid.UUID | None = None,
         detected_language: str | None = None,
+        history: list[dict] | None = None,
     ) -> dict:
         if not session_id:
             session_id = uuid.uuid4()
@@ -48,14 +52,30 @@ class ChatWorkflow:
             llm = self._get_llm()
             system_prompt = f"{CITIZEN_SYSTEM_PROMPT}\n\n{MULTILINGUAL_INSTRUCTIONS}"
 
+            # Build conversation context from history
+            conversation_context = ""
+            if history:
+                conversation_context = "Previous conversation:\n"
+                for msg in history:
+                    role_label = "Citizen" if msg.get("role") == "citizen" else "Assistant"
+                    conversation_context += f"{role_label}: {msg.get('content', '')}\n"
+                conversation_context += "\n"
+
+            prompt = f"{conversation_context}Citizen message: {message}\n\nRespond naturally, empathetically, and helpfully. If the citizen has already provided context in previous messages, acknowledge it and build on it. Ask for location details only if not already provided."
+
             ai_content = await llm.generate(
-                prompt=f"Citizen message: {message}\n\nRespond naturally, empathetically, and helpfully. Ask for location if not provided.",
+                prompt=prompt,
                 system_prompt=system_prompt,
                 temperature=0.7,
                 max_tokens=500,
             )
         except Exception as e:
-            ai_content = "Thank you for sharing this with us. I understand your concern and I'm here to help. Could you please provide a bit more detail about the location of this issue?"
+            logger.error("LLM call failed: {} - {}", type(e).__name__, str(e))
+            ai_content = (
+                "I'm sorry, the AI assistant is temporarily unavailable. "
+                "Your concern has been noted. Please try again in a moment, "
+                "or use the 'Submit Issue' page to submit your issue directly."
+            )
 
         ai_response = {
             "id": uuid.uuid4(),
@@ -97,7 +117,8 @@ class ChatWorkflow:
                 max_tokens=1000,
             )
         except Exception as e:
-            answer = f"Based on the current data, here is what I found regarding your query: {query}"
+            logger.error("LLM copilot call failed: {} - {}", type(e).__name__, str(e))
+            answer = f"The AI copilot is temporarily unavailable. Please try again in a moment. Your query: {query}"
 
         return {
             "answer": answer,

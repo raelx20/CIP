@@ -9,6 +9,7 @@ class ChatMessage(BaseModel):
     original_content: str | None = None
     detected_language: str | None = None
     timestamp: datetime | None = None
+    history: list[dict] | None = None
 
 
 class ChatResponse(BaseModel):

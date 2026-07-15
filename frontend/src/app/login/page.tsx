@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth/context';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -28,15 +28,17 @@ export default function LoginPage() {
   };
 
   // Redirect after login based on role
-  if (user) {
-    const roleRoutes: Record<string, string> = {
-      citizen: '/citizen',
-      mp: '/mp',
-      officer: '/officer',
-      admin: '/admin',
-    };
-    router.push(roleRoutes[user.role] || '/citizen');
-  }
+  useEffect(() => {
+    if (user) {
+      const roleRoutes: Record<string, string> = {
+        citizen: '/citizen',
+        mp: '/mp',
+        officer: '/officer',
+        admin: '/admin',
+      };
+      router.push(roleRoutes[user.role] || '/citizen');
+    }
+  }, [user, router]);
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex' }}>

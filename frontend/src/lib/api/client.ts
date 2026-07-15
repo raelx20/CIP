@@ -59,7 +59,7 @@ export const citizen = {
     apiClient<Submission>(`/api/v1/citizen/submissions/${id}`, { token }),
   getStatus: (id: string, token: string) =>
     apiClient<SubmissionStatus>(`/api/v1/citizen/submissions/${id}/status`, { token }),
-  chat: (data: ChatMessage, token: string) =>
+  chat: (data: ChatMessage & { history?: { role: string; content: string }[] }, token: string) =>
     apiClient<ChatResponse>('/api/v1/citizen/chat', { method: 'POST', body: data, token }),
   getMyIssues: (token: string) =>
     apiClient<{ issues: IssueCluster[]; total: number; message: string }>('/api/v1/citizen/my-issues', { token }),
@@ -163,6 +163,7 @@ export interface ChatMessage {
   content: string;
   detected_language?: string;
   timestamp?: string;
+  history?: { role: string; content: string }[];
 }
 
 export interface ChatResponse {

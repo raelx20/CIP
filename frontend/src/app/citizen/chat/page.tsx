@@ -25,7 +25,12 @@ export default function CitizenChat() {
 
     try {
       const response = await citizen.chat(
-        { role: 'citizen', content: input, detected_language: 'en' },
+        {
+          role: 'citizen',
+          content: input,
+          detected_language: 'en',
+          history: messages.map((m) => ({ role: m.role, content: m.content })),
+        },
         token
       );
       setMessages((prev) => [...prev, response.message]);
