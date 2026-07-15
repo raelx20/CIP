@@ -1,4 +1,4 @@
-from sqlalchemy import pool
+from sqlalchemy import event, pool
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 from app.config import settings
@@ -9,8 +9,13 @@ if settings.DATABASE_URL and "pooler" in settings.DATABASE_URL:
         settings.DATABASE_URL,
         echo=settings.DEBUG,
         poolclass=pool.NullPool,
-        connect_args={"statement_cache_size": 0},
     ) if settings.DATABASE_URL and settings.DATABASE_URL.strip() else None
+
+    # Disable prepared statements for pgbouncer
+    if engine is not None:
+        @event.listens_for(engine.sync_engine, "connect")
+        def set_statement_cache_size(dbapi_connection, connection_record):
+            dbapi_connection.statement_cache_size = 0
 else:
     _engine_kwargs = {
         "echo": settings.DEBUG,
