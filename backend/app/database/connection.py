@@ -1,20 +1,16 @@
-import asyncpg
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 from app.config import settings
 
-# Disable prepared statements and connection pooling for Supabase pgbouncer pooler
+# Use psycopg async driver for Supabase pgbouncer (avoids asyncpg prepared statement issues)
 if settings.DATABASE_URL and "pooler" in settings.DATABASE_URL:
-
-    async def get_asyncpg_connection():
-        return await asyncpg.connect(settings.DATABASE_URL.replace("+asyncpg", ""), statement_cache_size=0)
-
+    # Convert asyncpg URL to psycopg async URL
+    psycopg_url = settings.DATABASE_URL.replace("postgresql+asyncpg://", "postgresql+psycopg://")
     engine: AsyncEngine = create_async_engine(
-        "postgresql+asyncpg://",
+        psycopg_url,
         echo=settings.DEBUG,
         poolclass=pool.NullPool,
-        creator=get_asyncpg_connection,
     ) if settings.DATABASE_URL and settings.DATABASE_URL.strip() else None
 else:
     _engine_kwargs = {
