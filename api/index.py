@@ -1,34 +1,24 @@
-"""Vercel serverless entry point — Flask health endpoint."""
+"""Vercel serverless entry point — FastAPI ASGI export."""
 
+import sys
 import os
-import json
-from flask import Flask, jsonify
+from pathlib import Path
 
-app = Flask(__name__)
+# Add api/backend and root backend directory to Python path for serverless environment
+api_backend_dir = str(Path(__file__).resolve().parent / "backend")
+if api_backend_dir not in sys.path:
+    sys.path.insert(0, api_backend_dir)
 
+root_backend_dir = str(Path(__file__).resolve().parent.parent / "backend")
+if root_backend_dir not in sys.path:
+    sys.path.insert(0, root_backend_dir)
 
-@app.route("/api/v1/system/health")
-def health():
-    return jsonify({
-        "status": "healthy",
-        "service": "Constituency Intelligence Platform",
-        "version": "1.0.0",
-        "environment": os.environ.get("ENVIRONMENT", "development"),
-    })
+try:
+    # pyrefly: ignore [missing-import]
+    from app.main import app
+except ModuleNotFoundError:
+    from backend.app.main import app
 
+# Export ASGI app directly for @vercel/python
+__all__ = ["app"]
 
-@app.route("/api/v1/system/ready")
-def ready():
-    return jsonify({
-        "status": "ready",
-        "database": "configured",
-    })
-
-
-@app.route("/")
-def root():
-    return jsonify({
-        "service": "CIP",
-        "version": "1.0.0",
-        "docs": "/api/v1/system/health",
-    })

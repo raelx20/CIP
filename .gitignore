@@ -47,3 +47,4 @@ frontend/tsconfig.tsbuildinfo
 backend/storage/
 !backend/storage/uploads/.gitkeep
 .vercel
+.wrangler

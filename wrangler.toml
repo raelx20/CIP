@@ -1,0 +1,27 @@
+name = "cip-edge-gateway"
+main = "scripts/cloudflare/edge_proxy.js"
+compatibility_date = "2026-07-15"
+
+# Environment Variables for Edge Routing
+[vars]
+ENVIRONMENT = "production"
+# Point this to your Vercel deployment domain or origin backend
+ORIGIN_BACKEND_URL = "https://cip.vercel.app"
+API_PREFIX = "/api/v1"
+
+# Enable Cloudflare Smart Placement for minimal latency across regions
+[placement]
+mode = "smart"
+
+# Development variables
+[env.development.vars]
+ENVIRONMENT = "development"
+ORIGIN_BACKEND_URL = "http://localhost:3000"
+
+# Production environment overrides
+[env.production]
+name = "cip-edge-gateway-prod"
+routes = [
+  # Uncomment and replace with your custom domain once connected to Cloudflare
+  # { pattern = "cip.yourdomain.gov/api/*", zone_name = "yourdomain.gov" }
+]
